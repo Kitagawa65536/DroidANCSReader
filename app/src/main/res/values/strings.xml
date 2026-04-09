@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">ANCS Reader</string>
+    <string name="foreground_service_channel_name">ANCS Connection</string>
+    <string name="foreground_service_channel_description">Keeps the ANCS link alive while the app is in the background.</string>
+    <string name="foreground_service_title">ANCS connection active</string>
+    <string name="foreground_service_text_idle">Waiting for an iPhone connection.</string>
+    <string name="foreground_service_text_ready">Connected to %1$s and listening for notifications.</string>
+    <string name="foreground_service_text_connecting">Connecting to %1$s…</string>
+</resources>
