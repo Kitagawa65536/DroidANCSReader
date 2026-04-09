@@ -26,11 +26,13 @@ import com.bridgeip.ancsreader.ui.state.AncsUiState
 fun ConnectionScreen(
     uiState: AncsUiState,
     onRequestPermissions: () -> Unit,
+    onRequestOptionalPermissions: () -> Unit,
     onEnableBluetooth: () -> Unit,
     onStartScan: () -> Unit,
     onStopScan: () -> Unit,
     onConnect: (String) -> Unit,
     onDisconnect: () -> Unit,
+    onSetForegroundServiceEnabled: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -57,6 +59,11 @@ fun ConnectionScreen(
                 if (uiState.missingPermissions.isNotEmpty()) {
                     Button(onClick = onRequestPermissions) {
                         Text("Request Bluetooth permissions")
+                    }
+                }
+                if (uiState.optionalPermissions.isNotEmpty() && uiState.missingOptionalPermissions.isNotEmpty()) {
+                    OutlinedButton(onClick = onRequestOptionalPermissions) {
+                        Text("Allow Android notifications")
                     }
                 }
             }
@@ -104,6 +111,48 @@ fun ConnectionScreen(
                     OutlinedButton(onClick = onDisconnect) {
                         Text("Disconnect")
                     }
+                }
+            }
+        }
+
+        item {
+            SectionCard(
+                title = "Background Service",
+                subtitle = "Keep ANCS connected in the foreground service and mirror paired iPhone notifications into Android notifications.",
+            ) {
+                Text(
+                    text = if (uiState.appSettings.foregroundServiceEnabled) {
+                        "Foreground service is enabled."
+                    } else {
+                        "Foreground service is disabled."
+                    },
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                uiState.appSettings.lastConnectedDeviceLabel?.let { deviceLabel ->
+                    Text(
+                        text = "Paired target: $deviceLabel",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { onSetForegroundServiceEnabled(true) },
+                        enabled = uiState.appSettings.lastConnectedDeviceAddress != null && !uiState.appSettings.foregroundServiceEnabled,
+                    ) {
+                        Text("Start service")
+                    }
+                    OutlinedButton(
+                        onClick = { onSetForegroundServiceEnabled(false) },
+                        enabled = uiState.appSettings.foregroundServiceEnabled,
+                    ) {
+                        Text("Stop service")
+                    }
+                }
+                if (uiState.appSettings.lastConnectedDeviceAddress == null) {
+                    Text(
+                        text = "Connect to an iPhone once to save it as the background reconnect target.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

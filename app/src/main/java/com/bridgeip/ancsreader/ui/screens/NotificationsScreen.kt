@@ -26,18 +26,18 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun NotificationsScreen(
     notifications: List<AncsNotification>,
-    onPositiveAction: (Long) -> Unit,
-    onNegativeAction: (Long) -> Unit,
+    onDeleteNotification: (Long) -> Unit,
+    onClearNotifications: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (notifications.isEmpty()) {
         Column(modifier = modifier.padding(24.dp)) {
             Text(
-                text = "No ANCS notifications yet.",
+                text = "No saved ANCS notifications yet.",
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                text = "After ANCS is ready, incoming iPhone notifications will appear here with add/update/remove reflected in real time.",
+                text = "Received iPhone notifications will be stored here so you can review them later.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -48,6 +48,22 @@ fun NotificationsScreen(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Saved notification log",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(onClick = onClearNotifications) {
+                    Text("Clear all")
+                }
+            }
+        }
+
         items(notifications, key = { it.notificationUid }) { notification ->
             SectionCard(
                 title = notification.displayTitle,
@@ -63,6 +79,9 @@ fun NotificationsScreen(
                     }
                     if (notification.flags.preExisting) {
                         AssistChip(onClick = {}, label = { Text("Pre-existing") })
+                    }
+                    if (notification.removedOnSource) {
+                        AssistChip(onClick = {}, label = { Text("Removed on iPhone") })
                     }
                 }
                 Text(
@@ -80,19 +99,10 @@ fun NotificationsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (notification.supportsPositiveAction) {
-                        OutlinedButton(
-                            onClick = { onPositiveAction(notification.notificationUid) },
-                        ) {
-                            Text(notification.positiveActionLabel ?: "Positive")
-                        }
-                    }
-                    if (notification.supportsNegativeAction) {
-                        OutlinedButton(
-                            onClick = { onNegativeAction(notification.notificationUid) },
-                        ) {
-                            Text(notification.negativeActionLabel ?: "Negative")
-                        }
+                    OutlinedButton(
+                        onClick = { onDeleteNotification(notification.notificationUid) },
+                    ) {
+                        Text("Delete")
                     }
                 }
             }

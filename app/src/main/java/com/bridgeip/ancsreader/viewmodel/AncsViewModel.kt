@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.bridgeip.ancsreader.bluetooth.BluetoothPermissionResolver
 import com.bridgeip.ancsreader.data.model.AncsNotification
+import com.bridgeip.ancsreader.data.model.AppSettings
 import com.bridgeip.ancsreader.data.model.ConnectionStatus
 import com.bridgeip.ancsreader.data.model.DebugLogEntry
 import com.bridgeip.ancsreader.data.model.DiscoveredDevice
@@ -44,6 +45,9 @@ class AncsViewModel(
             partial.copy(gattServices = gattServices)
         }
         .combine(repository.debugLogs) { partial, debugLogs ->
+            partial.copy(debugLogs = debugLogs)
+        }
+        .combine(repository.appSettings) { partial, appSettings ->
             RepositorySnapshot(
                 bluetoothEnabled = partial.bluetoothEnabled,
                 isScanning = partial.isScanning,
@@ -51,7 +55,8 @@ class AncsViewModel(
                 connectionStatus = partial.connectionStatus,
                 notifications = partial.notifications,
                 gattServices = partial.gattServices,
-                debugLogs = debugLogs,
+                debugLogs = partial.debugLogs,
+                appSettings = appSettings,
             )
         }
 
@@ -72,6 +77,7 @@ class AncsViewModel(
             notifications = snapshot.notifications,
             gattServices = snapshot.gattServices,
             debugLogs = snapshot.debugLogs,
+            appSettings = snapshot.appSettings,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -115,6 +121,18 @@ class AncsViewModel(
         repository.performAction(notificationUid, NotificationAction.Negative)
     }
 
+    fun deleteNotification(notificationUid: Long) {
+        repository.deleteNotification(notificationUid)
+    }
+
+    fun clearNotificationHistory() {
+        repository.clearNotificationHistory()
+    }
+
+    fun setForegroundServiceEnabled(enabled: Boolean) {
+        repository.setForegroundServiceEnabled(enabled)
+    }
+
     class Factory(
         private val repository: AncsRepository,
     ) : ViewModelProvider.Factory {
@@ -132,6 +150,7 @@ class AncsViewModel(
         val notifications: List<AncsNotification>,
         val gattServices: List<GattServiceSummary>,
         val debugLogs: List<DebugLogEntry>,
+        val appSettings: AppSettings,
     )
 
     private data class PartialRepositorySnapshot(
@@ -141,5 +160,6 @@ class AncsViewModel(
         val connectionStatus: ConnectionStatus = ConnectionStatus(),
         val notifications: List<AncsNotification> = emptyList(),
         val gattServices: List<GattServiceSummary> = emptyList(),
+        val debugLogs: List<DebugLogEntry> = emptyList(),
     )
 }

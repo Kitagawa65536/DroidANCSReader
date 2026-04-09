@@ -45,6 +45,8 @@ ANCSReader/
   権限状態と Repository の状態を結合して immutable UI state を生成します。
 - `ui/`
   Compose 画面。接続、通知一覧、デバッグの 3 タブ構成です。
+- `service/ConnectionForegroundService`
+  保存済みの iPhone へ再接続し、ANCS をバックグラウンドで維持しながら Android 通知へミラーします。
 
 ## 実装済み機能
 
@@ -57,10 +59,12 @@ ANCSReader/
 - 複数パケットの `Data Source` 応答再構成
 - 通知 UID ベースの追加 / 更新 / 削除反映
 - Positive / Negative Action コマンド送信
+- Foreground Service からの常駐接続と Android 通知ミラー表示
+- 受信済み通知ログの永続保存、個別削除、全削除
+- 最後に接続した iPhone の保存とバックグラウンド再接続
 - Android 12+ の `BLUETOOTH_SCAN` / `BLUETOOTH_CONNECT` 対応
 - 旧 Android 向けの `BLUETOOTH` / `BLUETOOTH_ADMIN` / `ACCESS_FINE_LOCATION` 条件対応
 - GATT サービス一覧と ANCS 通信ログの表示
-- Foreground Service の土台実装
 
 ## セットアップ
 
@@ -84,9 +88,12 @@ ANCSReader/
 1. `Connect` タブで Bluetooth 権限を許可します。
 2. Bluetooth をオンにします。
 3. `Start scan` を押し、候補デバイスから iPhone を選んで `Pair and connect` を押します。
-4. 接続が進むと `Debug` タブに GATT Service / Characteristic ログが出ます。
-5. `Ready` になった後、iPhone に新しい通知を発生させると `Notifications` タブへ表示されます。
-6. 対応通知では Positive / Negative Action ボタンを押せます。
+4. 一度接続すると、その iPhone は背景サービス用の再接続先として保存されます。
+5. `Background Service` セクションから常駐サービスを起動すると、アプリを閉じても通知受信を継続できます。
+6. 接続が進むと `Debug` タブに GATT Service / Characteristic ログが出ます。
+7. `Ready` になった後、iPhone に新しい通知を発生させると Android 通知として表示され、`Notifications` タブにも保存されます。
+8. `Notifications` タブでは保存済みログの個別削除と全削除ができます。
+9. 対応通知では Positive / Negative Action ボタンを押せます。
 
 ## ビルド方法
 
@@ -120,14 +127,13 @@ $env:GRADLE_USER_HOME="$PWD\.gradle-home"
 
 - iPhone の広告内容だけで ANCS 対応端末を判別していないため、BLE デバイス一覧から手動選択が必要です。
 - `Service Changed` characteristic の監視や自動再接続は MVP では未実装です。
-- Foreground Service は土台のみで、現状は UI から起動する導線をまだ付けていません。
 - BLE 接続とペアリングの挙動は Android 端末ベンダー差があります。
 - `NotificationAttributeIDMessageSize` や `Get App Attributes` は未実装です。
+- 端末や OS 状況によっては、長時間バックグラウンド維持に追加のバッテリー最適化除外が必要な場合があります。
 
 ## 今後の改善候補
 
 - `Service Changed` subscribe と ANCS 再公開検知
-- Foreground Service の UI 導線追加
 - 自動再接続ポリシーと接続リトライの改善
 - 通知詳細画面とアプリ名キャッシュ
 - ログ永続化とエクスポート

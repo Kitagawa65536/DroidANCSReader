@@ -2,6 +2,7 @@ package com.bridgeip.ancsreader.ui.state
 
 import com.bridgeip.ancsreader.bluetooth.BluetoothPermissionResolver
 import com.bridgeip.ancsreader.data.model.AncsNotification
+import com.bridgeip.ancsreader.data.model.AppSettings
 import com.bridgeip.ancsreader.data.model.ConnectionStatus
 import com.bridgeip.ancsreader.data.model.DebugLogEntry
 import com.bridgeip.ancsreader.data.model.DiscoveredDevice
@@ -19,6 +20,7 @@ data class AncsUiState(
     val notifications: List<AncsNotification> = emptyList(),
     val gattServices: List<GattServiceSummary> = emptyList(),
     val debugLogs: List<DebugLogEntry> = emptyList(),
+    val appSettings: AppSettings = AppSettings(),
 ) {
     val missingPermissions: List<String> = requiredPermissions.filterNot(grantedPermissions::contains)
     val missingOptionalPermissions: List<String> = optionalPermissions.filterNot(grantedOptionalPermissions::contains)
@@ -30,4 +32,3 @@ enum class MainTab(val title: String) {
     Notifications("Notifications"),
     Debug("Debug"),
 }
-

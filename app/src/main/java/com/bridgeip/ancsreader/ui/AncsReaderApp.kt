@@ -27,13 +27,15 @@ import com.bridgeip.ancsreader.ui.state.MainTab
 fun AncsReaderApp(
     uiState: AncsUiState,
     onRequestPermissions: () -> Unit,
+    onRequestOptionalPermissions: () -> Unit,
     onEnableBluetooth: () -> Unit,
     onStartScan: () -> Unit,
     onStopScan: () -> Unit,
     onConnect: (String) -> Unit,
     onDisconnect: () -> Unit,
-    onPositiveAction: (Long) -> Unit,
-    onNegativeAction: (Long) -> Unit,
+    onSetForegroundServiceEnabled: (Boolean) -> Unit,
+    onDeleteNotification: (Long) -> Unit,
+    onClearNotifications: () -> Unit,
 ) {
     var currentTab by rememberSaveable { mutableStateOf(MainTab.Connection) }
 
@@ -68,18 +70,20 @@ fun AncsReaderApp(
             MainTab.Connection -> ConnectionScreen(
                 uiState = uiState,
                 onRequestPermissions = onRequestPermissions,
+                onRequestOptionalPermissions = onRequestOptionalPermissions,
                 onEnableBluetooth = onEnableBluetooth,
                 onStartScan = onStartScan,
                 onStopScan = onStopScan,
                 onConnect = onConnect,
                 onDisconnect = onDisconnect,
+                onSetForegroundServiceEnabled = onSetForegroundServiceEnabled,
                 modifier = contentModifier,
             )
 
             MainTab.Notifications -> NotificationsScreen(
                 notifications = uiState.notifications,
-                onPositiveAction = onPositiveAction,
-                onNegativeAction = onNegativeAction,
+                onDeleteNotification = onDeleteNotification,
+                onClearNotifications = onClearNotifications,
                 modifier = contentModifier,
             )
 

@@ -20,6 +20,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.bridgeip.ancsreader.bluetooth.BluetoothPermissionResolver
+import com.bridgeip.ancsreader.service.ConnectionForegroundService
 import com.bridgeip.ancsreader.ui.AncsReaderApp
 import com.bridgeip.ancsreader.ui.theme.ANCSReaderTheme
 import com.bridgeip.ancsreader.viewmodel.AncsViewModel
@@ -40,6 +41,14 @@ class MainActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
             val permissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions(),
+            ) {
+                viewModel.updatePermissionSnapshot(
+                    grantedRequired = currentGrantedPermissions(BluetoothPermissionResolver.requiredBlePermissions()),
+                    grantedOptional = currentGrantedPermissions(BluetoothPermissionResolver.optionalForegroundServicePermissions()),
+                )
+            }
+            val optionalPermissionLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions(),
             ) {
                 viewModel.updatePermissionSnapshot(
@@ -85,6 +94,11 @@ class MainActivity : ComponentActivity() {
                             BluetoothPermissionResolver.requiredBlePermissions().toTypedArray(),
                         )
                     },
+                    onRequestOptionalPermissions = {
+                        optionalPermissionLauncher.launch(
+                            BluetoothPermissionResolver.optionalForegroundServicePermissions().toTypedArray(),
+                        )
+                    },
                     onEnableBluetooth = {
                         bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
                     },
@@ -92,8 +106,16 @@ class MainActivity : ComponentActivity() {
                     onStopScan = viewModel::stopScan,
                     onConnect = viewModel::connect,
                     onDisconnect = viewModel::disconnect,
-                    onPositiveAction = viewModel::performPositiveAction,
-                    onNegativeAction = viewModel::performNegativeAction,
+                    onSetForegroundServiceEnabled = { enabled ->
+                        viewModel.setForegroundServiceEnabled(enabled)
+                        if (enabled) {
+                            ConnectionForegroundService.start(this@MainActivity)
+                        } else {
+                            ConnectionForegroundService.stop(this@MainActivity)
+                        }
+                    },
+                    onDeleteNotification = viewModel::deleteNotification,
+                    onClearNotifications = viewModel::clearNotificationHistory,
                 )
             }
         }

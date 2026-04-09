@@ -140,6 +140,7 @@ data class AncsNotification(
     val flags: NotificationEventFlags,
     val receivedAtMillis: Long,
     val lastUpdatedMillis: Long,
+    val removedOnSource: Boolean = false,
 ) {
     val supportsPositiveAction: Boolean = flags.positiveAction
     val supportsNegativeAction: Boolean = flags.negativeAction
@@ -157,6 +158,32 @@ data class AncsNotification(
     }.ifBlank { "Waiting for details from ANCS…" }
 }
 
+data class AppSettings(
+    val foregroundServiceEnabled: Boolean = false,
+    val lastConnectedDeviceAddress: String? = null,
+    val lastConnectedDeviceName: String? = null,
+) {
+    val lastConnectedDeviceLabel: String?
+        get() = when {
+            !lastConnectedDeviceName.isNullOrBlank() -> {
+                if (!lastConnectedDeviceAddress.isNullOrBlank()) {
+                    "$lastConnectedDeviceName ($lastConnectedDeviceAddress)"
+                } else {
+                    lastConnectedDeviceName
+                }
+            }
+
+            !lastConnectedDeviceAddress.isNullOrBlank() -> lastConnectedDeviceAddress
+            else -> null
+        }
+}
+
+sealed interface NotificationPresentationCommand {
+    data class Show(val notification: AncsNotification) : NotificationPresentationCommand
+    data class Cancel(val notificationUid: Long) : NotificationPresentationCommand
+    data object CancelAll : NotificationPresentationCommand
+}
+
 sealed interface AncsEvent {
     data class NotificationChanged(val event: NotificationSourceEvent) : AncsEvent
     data class NotificationAttributesReceived(val response: NotificationAttributeResponse) : AncsEvent
@@ -164,4 +191,3 @@ sealed interface AncsEvent {
     data object SessionEnded : AncsEvent
     data class Error(val message: String) : AncsEvent
 }
-

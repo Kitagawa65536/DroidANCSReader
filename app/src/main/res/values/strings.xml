@@ -6,4 +6,7 @@
     <string name="foreground_service_text_idle">Waiting for an iPhone connection.</string>
     <string name="foreground_service_text_ready">Connected to %1$s and listening for notifications.</string>
     <string name="foreground_service_text_connecting">Connecting to %1$s…</string>
+    <string name="foreground_service_stop">Stop</string>
+    <string name="mirrored_notifications_channel_name">Mirrored iPhone Notifications</string>
+    <string name="mirrored_notifications_channel_description">Shows ANCS notifications received from a paired iPhone.</string>
 </resources>
