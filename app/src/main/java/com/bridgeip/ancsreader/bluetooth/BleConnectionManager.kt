@@ -175,6 +175,7 @@ class BleConnectionManager(
                 controlPointCharacteristic != null &&
                 _connectionStatus.value.stage != ConnectionStage.Ready
             ) {
+                applyLowPowerConnectionProfile(gatt)
                 ancsManager.attachControlPointWriter(::writeControlPoint)
                 updateStatus(
                     stage = ConnectionStage.Ready,
@@ -196,6 +197,20 @@ class BleConnectionManager(
             logger("Failed to start GATT operation: $operation")
             currentOperation = null
             drainOperationQueue()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun applyLowPowerConnectionProfile(gatt: BluetoothGatt) {
+        val changed = try {
+            gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_LOW_POWER)
+        } catch (_: SecurityException) {
+            false
+        }
+        if (changed) {
+            logger("Requested low-power BLE connection priority")
+        } else {
+            logger("Low-power BLE connection priority request was not accepted")
         }
     }
 

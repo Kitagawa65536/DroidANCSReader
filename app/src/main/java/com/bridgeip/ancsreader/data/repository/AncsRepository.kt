@@ -24,6 +24,7 @@ interface AncsRepository {
 
     fun refreshBluetoothState()
     fun startScan()
+    fun startInteractiveScan()
     fun stopScan()
     fun connect(address: String)
     fun disconnect()

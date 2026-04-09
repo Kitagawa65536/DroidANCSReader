@@ -21,7 +21,12 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // release buildType の設定
+            // signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true // R8（最適化）を有効にする
+            // isMinifyEnabled = false
+            // 未使用なリソースを削除（アプリサイズを軽量化）
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

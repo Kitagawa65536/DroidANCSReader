@@ -7,6 +7,7 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.os.Build
 import com.bridgeip.ancsreader.data.model.DiscoveredDevice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,10 @@ class AndroidBleScanner(
     context: Context,
     private val logger: (String) -> Unit,
 ) : BleScanner {
+    private companion object {
+        private const val SCAN_REPORT_DELAY_MILLIS = 1_500L
+    }
+
     private val bluetoothManager = context.getSystemService(BluetoothManager::class.java)
     private val bluetoothAdapter: BluetoothAdapter?
         get() = bluetoothManager?.adapter
@@ -44,7 +49,7 @@ class AndroidBleScanner(
     }
 
     @SuppressLint("MissingPermission")
-    override fun startScan() {
+    override fun startScan(profile: ScanProfile) {
         val adapter = bluetoothAdapter
         if (adapter == null || !adapter.isEnabled) {
             logger("BLE scan skipped because Bluetooth is disabled")
@@ -63,15 +68,39 @@ class AndroidBleScanner(
         try {
             resultMap.clear()
             _scanResults.value = emptyList()
+            val settings = ScanSettings.Builder()
+                .setScanMode(
+                    when (profile) {
+                        ScanProfile.LowPower -> ScanSettings.SCAN_MODE_LOW_POWER
+                        ScanProfile.Interactive -> ScanSettings.SCAN_MODE_LOW_LATENCY
+                    },
+                )
+                .setReportDelay(
+                    when (profile) {
+                        ScanProfile.LowPower -> SCAN_REPORT_DELAY_MILLIS
+                        ScanProfile.Interactive -> 0L
+                    },
+                )
+                .apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+                        setMatchMode(ScanSettings.MATCH_MODE_STICKY)
+                        setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT)
+                    }
+                }
+                .build()
             scanner.startScan(
                 null,
-                ScanSettings.Builder()
-                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-                    .build(),
+                settings,
                 scanCallback,
             )
             _isScanning.value = true
-            logger("BLE scan started")
+            logger(
+                when (profile) {
+                    ScanProfile.LowPower -> "BLE scan started in low-power mode"
+                    ScanProfile.Interactive -> "BLE scan started in interactive low-latency mode"
+                },
+            )
         } catch (_: SecurityException) {
             logger("BLE scan failed because a Bluetooth permission is missing")
         }
@@ -105,4 +134,3 @@ class AndroidBleScanner(
         _scanResults.value = resultMap.values.sortedByDescending { it.rssi }
     }
 }
-

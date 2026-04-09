@@ -101,6 +101,10 @@ class AncsViewModel(
         repository.startScan()
     }
 
+    fun startInteractiveScan() {
+        repository.startInteractiveScan()
+    }
+
     fun stopScan() {
         repository.stopScan()
     }

@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
                     onEnableBluetooth = {
                         bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
                     },
-                    onStartScan = viewModel::startScan,
+                    onStartScan = viewModel::startInteractiveScan,
                     onStopScan = viewModel::stopScan,
                     onConnect = viewModel::connect,
                     onDisconnect = viewModel::disconnect,

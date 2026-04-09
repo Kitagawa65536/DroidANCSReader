@@ -4,6 +4,7 @@ import com.bridgeip.ancsreader.bluetooth.AncsManager
 import com.bridgeip.ancsreader.bluetooth.BleConnectionManager
 import com.bridgeip.ancsreader.bluetooth.BleScanner
 import com.bridgeip.ancsreader.bluetooth.BluetoothStateMonitor
+import com.bridgeip.ancsreader.bluetooth.ScanProfile
 import com.bridgeip.ancsreader.data.model.AncsEvent
 import com.bridgeip.ancsreader.data.model.AncsNotification
 import com.bridgeip.ancsreader.data.model.AppSettings
@@ -81,7 +82,11 @@ class DefaultAncsRepository(
     }
 
     override fun startScan() {
-        scanner.startScan()
+        scanner.startScan(ScanProfile.LowPower)
+    }
+
+    override fun startInteractiveScan() {
+        scanner.startScan(ScanProfile.Interactive)
     }
 
     override fun stopScan() {
