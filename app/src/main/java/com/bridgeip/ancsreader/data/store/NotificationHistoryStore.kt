@@ -1,12 +1,19 @@
 package com.bridgeip.ancsreader.data.store
 
 import android.content.Context
+import com.bridgeip.ancsreader.data.local.AncsDatabase
+import com.bridgeip.ancsreader.data.local.NotificationHistoryEntity
 import com.bridgeip.ancsreader.data.model.AncsNotification
 import com.bridgeip.ancsreader.data.model.NotificationCategory
 import com.bridgeip.ancsreader.data.model.NotificationEventFlags
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -14,50 +21,86 @@ class NotificationHistoryStore(
     context: Context,
     private val maxEntries: Int = 300,
 ) {
+    private val dao = AncsDatabase.getInstance(context).notificationHistoryDao()
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    private val _notifications = MutableStateFlow(load())
+    private val _notifications = MutableStateFlow(emptyList<AncsNotification>())
     val notifications: StateFlow<List<AncsNotification>> = _notifications.asStateFlow()
 
-    fun upsert(notification: AncsNotification): Boolean {
-        val updated = (_notifications.value.filterNot { it.notificationUid == notification.notificationUid } + notification)
-            .sortedByDescending { it.lastUpdatedMillis }
-            .take(maxEntries)
-        return save(updated)
+    init {
+        scope.launch {
+            migrateLegacyPreferencesIfNeeded()
+            dao.observeNotifications().collectLatest { entities ->
+                _notifications.value = entities.map { it.toModel() }
+            }
+        }
     }
 
-    fun markRemoved(notificationUid: Long): Boolean {
-        val updated = _notifications.value.map { notification ->
+    fun upsert(notification: AncsNotification) {
+        val allNotifications = (_notifications.value.filterNot { it.notificationUid == notification.notificationUid } + notification)
+            .sortedByDescending { it.lastUpdatedMillis }
+        val updated = allNotifications.take(maxEntries)
+        _notifications.value = updated
+        scope.launch {
+            dao.upsert(notification.toEntity())
+            trimToMaxEntries(allNotifications)
+        }
+    }
+
+    fun markRemoved(notificationUid: Long) {
+        val updatedAtMillis = System.currentTimeMillis()
+        _notifications.value = _notifications.value.map { notification ->
             if (notification.notificationUid == notificationUid) {
                 notification.copy(
                     removedOnSource = true,
-                    lastUpdatedMillis = System.currentTimeMillis(),
+                    lastUpdatedMillis = updatedAtMillis,
                 )
             } else {
                 notification
             }
         }
-        return save(updated)
+        scope.launch {
+            dao.markRemoved(notificationUid, updatedAtMillis)
+        }
     }
 
-    fun delete(notificationUid: Long): Boolean {
-        return save(_notifications.value.filterNot { it.notificationUid == notificationUid })
+    fun delete(notificationUid: Long) {
+        _notifications.value = _notifications.value.filterNot { it.notificationUid == notificationUid }
+        scope.launch {
+            dao.delete(notificationUid)
+        }
     }
 
-    fun clear(): Boolean {
-        return save(emptyList())
+    fun clear() {
+        _notifications.value = emptyList()
+        scope.launch {
+            dao.clear()
+        }
     }
 
-    private fun save(notifications: List<AncsNotification>): Boolean {
-        _notifications.value = notifications
-        return preferences.edit()
-            .putString(KEY_HISTORY_JSON, JSONArray().apply {
-                notifications.forEach { put(it.toJson()) }
-            }.toString())
-            .commit()
+    private suspend fun migrateLegacyPreferencesIfNeeded() {
+        if (dao.count() > 0) {
+            return
+        }
+        loadLegacyNotifications()
+            .sortedByDescending { it.lastUpdatedMillis }
+            .take(maxEntries)
+            .forEach { notification ->
+                dao.upsert(notification.toEntity())
+            }
+        preferences.edit().clear().apply()
     }
 
-    private fun load(): List<AncsNotification> {
+    private suspend fun trimToMaxEntries(notifications: List<AncsNotification>) {
+        notifications
+            .drop(maxEntries)
+            .forEach { notification ->
+                dao.delete(notification.notificationUid)
+            }
+    }
+
+    private fun loadLegacyNotifications(): List<AncsNotification> {
         val raw = preferences.getString(KEY_HISTORY_JSON, null).orEmpty()
         if (raw.isBlank()) {
             return emptyList()
@@ -67,28 +110,52 @@ class NotificationHistoryStore(
             for (index in 0 until array.length()) {
                 add(array.getJSONObject(index).toAncsNotification())
             }
-        }.sortedByDescending { it.lastUpdatedMillis }
+        }
     }
 
-    private fun AncsNotification.toJson(): JSONObject = JSONObject()
-        .put("notificationUid", notificationUid)
-        .put("category", category.rawValue)
-        .put("categoryCount", categoryCount)
-        .put("title", title)
-        .put("subtitle", subtitle)
-        .put("message", message)
-        .put("appIdentifier", appIdentifier)
-        .put("dateText", dateText)
-        .put("positiveActionLabel", positiveActionLabel)
-        .put("negativeActionLabel", negativeActionLabel)
-        .put("silent", flags.silent)
-        .put("important", flags.important)
-        .put("preExisting", flags.preExisting)
-        .put("positiveAction", flags.positiveAction)
-        .put("negativeAction", flags.negativeAction)
-        .put("receivedAtMillis", receivedAtMillis)
-        .put("lastUpdatedMillis", lastUpdatedMillis)
-        .put("removedOnSource", removedOnSource)
+    private fun AncsNotification.toEntity(): NotificationHistoryEntity = NotificationHistoryEntity(
+        notificationUid = notificationUid,
+        categoryRawValue = category.rawValue,
+        categoryCount = categoryCount,
+        title = title,
+        subtitle = subtitle,
+        message = message,
+        appIdentifier = appIdentifier,
+        dateText = dateText,
+        positiveActionLabel = positiveActionLabel,
+        negativeActionLabel = negativeActionLabel,
+        silent = flags.silent,
+        important = flags.important,
+        preExisting = flags.preExisting,
+        positiveAction = flags.positiveAction,
+        negativeAction = flags.negativeAction,
+        receivedAtMillis = receivedAtMillis,
+        lastUpdatedMillis = lastUpdatedMillis,
+        removedOnSource = removedOnSource,
+    )
+
+    private fun NotificationHistoryEntity.toModel(): AncsNotification = AncsNotification(
+        notificationUid = notificationUid,
+        category = NotificationCategory.fromRaw(categoryRawValue),
+        categoryCount = categoryCount,
+        title = title,
+        subtitle = subtitle,
+        message = message,
+        appIdentifier = appIdentifier,
+        dateText = dateText,
+        positiveActionLabel = positiveActionLabel,
+        negativeActionLabel = negativeActionLabel,
+        flags = NotificationEventFlags(
+            silent = silent,
+            important = important,
+            preExisting = preExisting,
+            positiveAction = positiveAction,
+            negativeAction = negativeAction,
+        ),
+        receivedAtMillis = receivedAtMillis,
+        lastUpdatedMillis = lastUpdatedMillis,
+        removedOnSource = removedOnSource,
+    )
 
     private fun JSONObject.toAncsNotification(): AncsNotification = AncsNotification(
         notificationUid = getLong("notificationUid"),
