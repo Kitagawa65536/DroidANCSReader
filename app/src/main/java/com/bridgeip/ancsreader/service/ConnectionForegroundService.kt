@@ -88,7 +88,7 @@ class ConnectionForegroundService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification_status)
             .setContentTitle(getString(R.string.foreground_service_title))
             .setContentText(contentText(status))
             .setContentIntent(launchIntent)
@@ -147,7 +147,7 @@ class ConnectionForegroundService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val mirrored = NotificationCompat.Builder(this, MIRRORED_CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification_status)
             .setContentTitle(notification.displayTitle)
             .setContentText(notification.displayMessage.replace('\n', ' '))
             .setStyle(BigTextStyle().bigText(notification.displayMessage))
