@@ -43,7 +43,7 @@ fun AncsReaderApp(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("ANCS Reader") },
+                title = { Text("DroidANCSReader") },
                 colors = TopAppBarDefaults.topAppBarColors(),
             )
         },
