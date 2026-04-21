@@ -20,8 +20,11 @@ import com.bridgeip.ancsreader.data.model.ConnectionStatus
 import com.bridgeip.ancsreader.data.model.NotificationPresentationCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -29,6 +32,8 @@ class ConnectionForegroundService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val notificationManager by lazy { getSystemService(NotificationManager::class.java) }
     private val mirroredNotificationIds = linkedSetOf<Int>()
+    private var reconnectJob: Job? = null
+    private var reconnectAttemptCount = 0
     private val repository by lazy {
         AppGraph.get(application).ancsRepository
     }
@@ -41,6 +46,13 @@ class ConnectionForegroundService : Service() {
         serviceScope.launch {
             repository.connectionStatus.collectLatest { status ->
                 notificationManager.notify(NOTIFICATION_ID, buildNotification(status))
+            }
+        }
+        serviceScope.launch {
+            combine(repository.connectionStatus, repository.appSettings) { status, settings ->
+                status to settings
+            }.collectLatest { (status, settings) ->
+                handleReconnectPolicy(status, settings.lastConnectedDeviceAddress, settings.foregroundServiceEnabled)
             }
         }
         serviceScope.launch {
@@ -68,6 +80,7 @@ class ConnectionForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        reconnectJob?.cancel()
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -106,6 +119,75 @@ class ConnectionForegroundService : Service() {
             ConnectionStage.DiscoveringServices,
             ConnectionStage.Subscribing -> getString(R.string.foreground_service_text_connecting, address)
             else -> getString(R.string.foreground_service_text_idle)
+        }
+    }
+
+    private fun handleReconnectPolicy(
+        status: ConnectionStatus,
+        lastConnectedDeviceAddress: String?,
+        foregroundServiceEnabled: Boolean,
+    ) {
+        if (!foregroundServiceEnabled || lastConnectedDeviceAddress == null) {
+            reconnectJob?.cancel()
+            reconnectJob = null
+            reconnectAttemptCount = 0
+            return
+        }
+
+        when (status.stage) {
+            ConnectionStage.Idle,
+            ConnectionStage.Disconnected -> scheduleReconnect(lastConnectedDeviceAddress)
+
+            ConnectionStage.Bonding,
+            ConnectionStage.Connecting,
+            ConnectionStage.DiscoveringServices,
+            ConnectionStage.Subscribing,
+            ConnectionStage.Ready -> {
+                reconnectJob?.cancel()
+                reconnectJob = null
+                reconnectAttemptCount = 0
+            }
+
+            ConnectionStage.Error -> {
+                reconnectJob?.cancel()
+                reconnectJob = null
+            }
+
+            ConnectionStage.Scanning -> Unit
+        }
+    }
+
+    private fun scheduleReconnect(lastConnectedDeviceAddress: String) {
+        if (reconnectJob?.isActive == true) {
+            return
+        }
+
+        val delayMillis = reconnectDelayMillis(reconnectAttemptCount)
+        reconnectJob = serviceScope.launch {
+            delay(delayMillis)
+            reconnectJob = null
+            val settings = repository.appSettings.value
+            val status = repository.connectionStatus.value
+            if (!settings.foregroundServiceEnabled || settings.lastConnectedDeviceAddress != lastConnectedDeviceAddress) {
+                reconnectAttemptCount = 0
+                return@launch
+            }
+            if (status.stage == ConnectionStage.Idle || status.stage == ConnectionStage.Disconnected) {
+                reconnectAttemptCount += 1
+                repository.reconnectLastDevice()
+            }
+        }
+    }
+
+    private fun reconnectDelayMillis(attempt: Int): Long {
+        // Back off quickly to avoid repeated BLE wakeups while still healing transient disconnects.
+        return when (attempt) {
+            0 -> 5_000L
+            1 -> 15_000L
+            2 -> 30_000L
+            3 -> 60_000L
+            4 -> 120_000L
+            else -> 300_000L
         }
     }
 
