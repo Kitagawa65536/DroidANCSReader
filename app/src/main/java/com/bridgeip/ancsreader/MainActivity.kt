@@ -24,6 +24,7 @@ import com.bridgeip.ancsreader.service.ConnectionForegroundService
 import com.bridgeip.ancsreader.ui.AncsReaderApp
 import com.bridgeip.ancsreader.ui.theme.ANCSReaderTheme
 import com.bridgeip.ancsreader.viewmodel.AncsViewModel
+import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 
 class MainActivity : ComponentActivity() {
     private val viewModel: AncsViewModel by viewModels {
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val appVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "0.1.0"
         setContent {
             val context = LocalContext.current
             val lifecycleOwner = LocalLifecycleOwner.current
@@ -89,6 +91,7 @@ class MainActivity : ComponentActivity() {
             ANCSReaderTheme {
                 AncsReaderApp(
                     uiState = uiState,
+                    appVersion = appVersion,
                     onRequestPermissions = {
                         permissionLauncher.launch(
                             BluetoothPermissionResolver.requiredBlePermissions().toTypedArray(),
@@ -117,6 +120,10 @@ class MainActivity : ComponentActivity() {
                     onDeleteNotification = viewModel::deleteNotification,
                     onClearNotifications = viewModel::clearNotificationHistory,
                     onClearRemovedOnSourceNotifications = viewModel::clearRemovedOnSourceNotifications,
+                    onOpenOssLicenses = {
+                        OssLicensesMenuActivity.setActivityTitle(getString(R.string.oss_licenses_title))
+                        startActivity(Intent(this@MainActivity, OssLicensesMenuActivity::class.java))
+                    },
                 )
             }
         }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.bridgeip.ancsreader.ui.screens.AboutScreen
 import com.bridgeip.ancsreader.ui.screens.ConnectionScreen
 import com.bridgeip.ancsreader.ui.screens.DebugScreen
 import com.bridgeip.ancsreader.ui.screens.NotificationsScreen
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AncsReaderApp(
     uiState: AncsUiState,
+    appVersion: String,
     onRequestPermissions: () -> Unit,
     onRequestOptionalPermissions: () -> Unit,
     onEnableBluetooth: () -> Unit,
@@ -38,6 +40,7 @@ fun AncsReaderApp(
     onDeleteNotification: (Long) -> Unit,
     onClearNotifications: () -> Unit,
     onClearRemovedOnSourceNotifications: () -> Unit,
+    onOpenOssLicenses: () -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { MainTab.entries.size })
     val coroutineScope = rememberCoroutineScope()
@@ -107,6 +110,12 @@ fun AncsReaderApp(
                         connectionStatus = uiState.connectionStatus,
                         gattServices = uiState.gattServices,
                         debugLogs = uiState.debugLogs,
+                        modifier = contentModifier,
+                    )
+
+                    MainTab.About -> AboutScreen(
+                        appVersion = appVersion,
+                        onOpenOssLicenses = onOpenOssLicenses,
                         modifier = contentModifier,
                     )
                 }

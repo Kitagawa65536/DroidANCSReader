@@ -2,4 +2,9 @@
 <resources>
 
     <style name="Theme.ANCSReader" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.ANCSReader.OssLicenses" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/seed_primary</item>
+        <item name="colorPrimaryDark">@color/seed_primary</item>
+        <item name="colorAccent">@color/seed_secondary</item>
+    </style>
 </resources>

@@ -31,4 +31,5 @@ enum class MainTab(val title: String) {
     Connection("Connect"),
     Notifications("Notifications"),
     Debug("Debug"),
+    About("About"),
 }
