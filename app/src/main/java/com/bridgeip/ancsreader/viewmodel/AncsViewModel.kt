@@ -133,6 +133,10 @@ class AncsViewModel(
         repository.clearNotificationHistory()
     }
 
+    fun clearRemovedOnSourceNotifications() {
+        repository.clearRemovedOnSourceNotifications()
+    }
+
     fun setForegroundServiceEnabled(enabled: Boolean) {
         repository.setForegroundServiceEnabled(enabled)
     }

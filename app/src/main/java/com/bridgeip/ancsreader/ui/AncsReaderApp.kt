@@ -37,6 +37,7 @@ fun AncsReaderApp(
     onSetForegroundServiceEnabled: (Boolean) -> Unit,
     onDeleteNotification: (Long) -> Unit,
     onClearNotifications: () -> Unit,
+    onClearRemovedOnSourceNotifications: () -> Unit,
 ) {
     val pagerState = rememberPagerState(pageCount = { MainTab.entries.size })
     val coroutineScope = rememberCoroutineScope()
@@ -97,6 +98,8 @@ fun AncsReaderApp(
                         notifications = uiState.notifications,
                         onDeleteNotification = onDeleteNotification,
                         onClearNotifications = onClearNotifications,
+                        onClearRemovedOnSourceNotifications = onClearRemovedOnSourceNotifications,
+                        hasRemovedOnSourceNotifications = uiState.notifications.any { it.removedOnSource },
                         modifier = contentModifier,
                     )
 

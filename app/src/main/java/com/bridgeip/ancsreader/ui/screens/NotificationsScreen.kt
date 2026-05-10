@@ -28,6 +28,8 @@ fun NotificationsScreen(
     notifications: List<AncsNotification>,
     onDeleteNotification: (Long) -> Unit,
     onClearNotifications: () -> Unit,
+    onClearRemovedOnSourceNotifications: () -> Unit,
+    hasRemovedOnSourceNotifications: Boolean,
     modifier: Modifier = Modifier,
 ) {
     if (notifications.isEmpty()) {
@@ -49,17 +51,26 @@ fun NotificationsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = "Saved notification log",
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
                 )
-                OutlinedButton(onClick = onClearNotifications) {
-                    Text("Clear all")
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onClearRemovedOnSourceNotifications,
+                        enabled = hasRemovedOnSourceNotifications,
+                    ) {
+                        Text("Remove deleted on iPhone")
+                    }
+                    OutlinedButton(onClick = onClearNotifications) {
+                        Text("Clear all")
+                    }
                 }
             }
         }

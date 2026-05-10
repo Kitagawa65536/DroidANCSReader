@@ -22,11 +22,11 @@ android {
     buildTypes {
         release {
             // release buildType の設定
-            // signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = true // R8（最適化）を有効にする
-            // isMinifyEnabled = false
-            // 未使用なリソースを削除（アプリサイズを軽量化）
-            isShrinkResources = true
+            //signingConfig = signingConfigs.getByName("debug")
+            //isMinifyEnabled = true
+            //isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -64,8 +64,11 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)

@@ -11,12 +11,12 @@ import kotlinx.coroutines.flow.asSharedFlow
 
 class AncsManager(
     private val logger: (String) -> Unit,
-) {
+) : AncsEventController {
     private val notificationSourceParser = NotificationSourceParser()
     private val attributeAssembler = NotificationAttributeResponseAssembler()
 
     private val _events = MutableSharedFlow<AncsEvent>(extraBufferCapacity = 32)
-    val events: SharedFlow<AncsEvent> = _events.asSharedFlow()
+    override val events: SharedFlow<AncsEvent> = _events.asSharedFlow()
 
     private val pendingRequests = ArrayDeque<PendingAttributeRequest>()
     private var activeRequest: PendingAttributeRequest? = null
@@ -54,9 +54,9 @@ class AncsManager(
         drainRequestQueue()
     }
 
-    fun requestNotificationDetails(
+    override fun requestNotificationDetails(
         notificationUid: Long,
-        attributes: List<NotificationAttributeId> = AncsBluetoothConstants.defaultRequestedAttributes,
+        attributes: List<NotificationAttributeId>,
     ) {
         pendingRequests.addLast(PendingAttributeRequest(notificationUid, attributes))
         drainRequestQueue()

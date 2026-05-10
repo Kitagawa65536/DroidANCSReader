@@ -15,13 +15,13 @@ import kotlinx.coroutines.launch
 
 class AppPreferencesStore(
     context: Context,
-) {
+) : AppPreferencesDataSource {
     private val dao = AncsDatabase.getInstance(context).appSettingsDao()
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _settings = MutableStateFlow(AppSettings())
-    val settings: StateFlow<AppSettings> = _settings.asStateFlow()
+    override val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
     init {
         scope.launch {
@@ -32,7 +32,7 @@ class AppPreferencesStore(
         }
     }
 
-    fun setForegroundServiceEnabled(enabled: Boolean) {
+    override fun setForegroundServiceEnabled(enabled: Boolean) {
         val updated = _settings.value.copy(foregroundServiceEnabled = enabled)
         _settings.value = updated
         scope.launch {
@@ -40,7 +40,7 @@ class AppPreferencesStore(
         }
     }
 
-    fun setLastConnectedDevice(
+    override fun setLastConnectedDevice(
         address: String,
         name: String?,
     ) {

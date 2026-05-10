@@ -116,6 +116,7 @@ class MainActivity : ComponentActivity() {
                     },
                     onDeleteNotification = viewModel::deleteNotification,
                     onClearNotifications = viewModel::clearNotificationHistory,
+                    onClearRemovedOnSourceNotifications = viewModel::clearRemovedOnSourceNotifications,
                 )
             }
         }

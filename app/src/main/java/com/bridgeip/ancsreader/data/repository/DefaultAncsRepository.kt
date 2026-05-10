@@ -1,7 +1,7 @@
 package com.bridgeip.ancsreader.data.repository
 
-import com.bridgeip.ancsreader.bluetooth.AncsManager
-import com.bridgeip.ancsreader.bluetooth.BleConnectionManager
+import com.bridgeip.ancsreader.bluetooth.AncsEventController
+import com.bridgeip.ancsreader.bluetooth.BleConnectionController
 import com.bridgeip.ancsreader.bluetooth.BleScanner
 import com.bridgeip.ancsreader.bluetooth.BluetoothStateMonitor
 import com.bridgeip.ancsreader.bluetooth.ScanProfile
@@ -17,9 +17,9 @@ import com.bridgeip.ancsreader.data.model.NotificationAction
 import com.bridgeip.ancsreader.data.model.NotificationAttributeId
 import com.bridgeip.ancsreader.data.model.NotificationEventType
 import com.bridgeip.ancsreader.data.model.NotificationPresentationCommand
-import com.bridgeip.ancsreader.data.store.AppPreferencesStore
-import com.bridgeip.ancsreader.data.store.NotificationHistoryStore
-import com.bridgeip.ancsreader.util.DebugLogStore
+import com.bridgeip.ancsreader.data.store.AppPreferencesDataSource
+import com.bridgeip.ancsreader.data.store.NotificationHistoryDataSource
+import com.bridgeip.ancsreader.util.DebugLogSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,12 +33,12 @@ import kotlinx.coroutines.flow.stateIn
 class DefaultAncsRepository(
     scope: CoroutineScope,
     private val scanner: BleScanner,
-    private val connectionManager: BleConnectionManager,
+    private val connectionManager: BleConnectionController,
     private val bluetoothStateMonitor: BluetoothStateMonitor,
-    ancsManager: AncsManager,
-    logStore: DebugLogStore,
-    private val appPreferencesStore: AppPreferencesStore,
-    private val notificationHistoryStore: NotificationHistoryStore,
+    ancsManager: AncsEventController,
+    logStore: DebugLogSource,
+    private val appPreferencesStore: AppPreferencesDataSource,
+    private val notificationHistoryStore: NotificationHistoryDataSource,
 ) : AncsRepository {
     override val bluetoothEnabled: StateFlow<Boolean> = bluetoothStateMonitor.isBluetoothEnabled
     override val isScanning: StateFlow<Boolean> = scanner.isScanning
@@ -127,12 +127,16 @@ class DefaultAncsRepository(
         _notificationPresentationCommands.tryEmit(NotificationPresentationCommand.CancelAll)
     }
 
+    override fun clearRemovedOnSourceNotifications() {
+        notificationHistoryStore.clearRemovedOnSourceNotifications()
+    }
+
     override fun setForegroundServiceEnabled(enabled: Boolean) {
         appPreferencesStore.setForegroundServiceEnabled(enabled)
     }
 
     private fun handleNotificationEvent(
-        ancsManager: AncsManager,
+        ancsManager: AncsEventController,
         event: AncsEvent.NotificationChanged,
     ) {
         val source = event.event

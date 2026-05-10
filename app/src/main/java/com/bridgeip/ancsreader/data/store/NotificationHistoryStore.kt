@@ -20,13 +20,13 @@ import org.json.JSONObject
 class NotificationHistoryStore(
     context: Context,
     private val maxEntries: Int = 300,
-) {
+) : NotificationHistoryDataSource {
     private val dao = AncsDatabase.getInstance(context).notificationHistoryDao()
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _notifications = MutableStateFlow(emptyList<AncsNotification>())
-    val notifications: StateFlow<List<AncsNotification>> = _notifications.asStateFlow()
+    override val notifications: StateFlow<List<AncsNotification>> = _notifications.asStateFlow()
 
     init {
         scope.launch {
@@ -37,7 +37,7 @@ class NotificationHistoryStore(
         }
     }
 
-    fun upsert(notification: AncsNotification) {
+    override fun upsert(notification: AncsNotification) {
         val allNotifications = (_notifications.value.filterNot { it.notificationUid == notification.notificationUid } + notification)
             .sortedByDescending { it.lastUpdatedMillis }
         val updated = allNotifications.take(maxEntries)
@@ -48,7 +48,7 @@ class NotificationHistoryStore(
         }
     }
 
-    fun markRemoved(notificationUid: Long) {
+    override fun markRemoved(notificationUid: Long) {
         val updatedAtMillis = System.currentTimeMillis()
         _notifications.value = _notifications.value.map { notification ->
             if (notification.notificationUid == notificationUid) {
@@ -65,14 +65,21 @@ class NotificationHistoryStore(
         }
     }
 
-    fun delete(notificationUid: Long) {
+    override fun delete(notificationUid: Long) {
         _notifications.value = _notifications.value.filterNot { it.notificationUid == notificationUid }
         scope.launch {
             dao.delete(notificationUid)
         }
     }
 
-    fun clear() {
+    override fun clearRemovedOnSourceNotifications() {
+        _notifications.value = _notifications.value.filterNot { it.removedOnSource }
+        scope.launch {
+            dao.deleteRemovedOnSource()
+        }
+    }
+
+    override fun clear() {
         _notifications.value = emptyList()
         scope.launch {
             dao.clear()

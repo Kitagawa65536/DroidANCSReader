@@ -23,6 +23,9 @@ interface NotificationHistoryDao {
     @Query("DELETE FROM notification_history WHERE notificationUid = :notificationUid")
     suspend fun delete(notificationUid: Long)
 
+    @Query("DELETE FROM notification_history WHERE removedOnSource = 1")
+    suspend fun deleteRemovedOnSource()
+
     @Query("DELETE FROM notification_history")
     suspend fun clear()
 }

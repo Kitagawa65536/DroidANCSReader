@@ -24,14 +24,14 @@ class BleConnectionManager(
     private val context: Context,
     private val ancsManager: AncsManager,
     private val logger: (String) -> Unit,
-) {
+) : BleConnectionController {
     private val bluetoothManager = context.getSystemService(BluetoothManager::class.java)
 
     private val _connectionStatus = MutableStateFlow(ConnectionStatus())
-    val connectionStatus: StateFlow<ConnectionStatus> = _connectionStatus.asStateFlow()
+    override val connectionStatus: StateFlow<ConnectionStatus> = _connectionStatus.asStateFlow()
 
     private val _services = MutableStateFlow<List<GattServiceSummary>>(emptyList())
-    val services: StateFlow<List<GattServiceSummary>> = _services.asStateFlow()
+    override val services: StateFlow<List<GattServiceSummary>> = _services.asStateFlow()
 
     private val _connectedDeviceAddress = MutableStateFlow<String?>(null)
     val connectedDeviceAddress: StateFlow<String?> = _connectedDeviceAddress.asStateFlow()
@@ -79,7 +79,7 @@ class BleConnectionManager(
     }
 
     @SuppressLint("MissingPermission")
-    fun connect(address: String) {
+    override fun connect(address: String) {
         val adapter = bluetoothManager?.adapter
         if (adapter == null || !adapter.isEnabled) {
             updateStatus(ConnectionStage.Error, address, "Bluetooth is disabled.")
@@ -108,7 +108,7 @@ class BleConnectionManager(
     }
 
     @SuppressLint("MissingPermission")
-    fun disconnect() {
+    override fun disconnect() {
         logger("Disconnect requested")
         bluetoothGatt?.disconnect()
         closeGatt()
@@ -118,7 +118,7 @@ class BleConnectionManager(
         _connectedDeviceAddress.value = null
     }
 
-    fun requestNotificationAction(notificationUid: Long, action: NotificationAction) {
+    override fun requestNotificationAction(notificationUid: Long, action: NotificationAction) {
         ancsManager.performAction(notificationUid, action)
     }
 

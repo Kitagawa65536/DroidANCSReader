@@ -7,9 +7,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class DebugLogStore(
     private val maxEntries: Int = 300,
-) {
+) : DebugLogSource {
     private val _entries = MutableStateFlow<List<DebugLogEntry>>(emptyList())
-    val entries: StateFlow<List<DebugLogEntry>> = _entries.asStateFlow()
+    override val entries: StateFlow<List<DebugLogEntry>> = _entries.asStateFlow()
 
     fun append(message: String) {
         val entry = DebugLogEntry(
@@ -19,4 +19,3 @@ class DebugLogStore(
         _entries.value = (_entries.value + entry).takeLast(maxEntries)
     }
 }
-
