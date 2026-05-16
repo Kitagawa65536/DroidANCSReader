@@ -17,6 +17,7 @@ import com.bridgeip.ancsreader.ui.components.SectionCard
 fun AboutScreen(
     appVersion: String,
     onOpenOssLicenses: () -> Unit,
+    onOpenDebug: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -25,14 +26,21 @@ fun AboutScreen(
     ) {
         item {
             SectionCard(
-                title = stringResource(R.string.app_name),
-                subtitle = stringResource(R.string.about_description),
+                title = stringResource(R.string.more_title),
+                subtitle = stringResource(R.string.more_description),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
                     Text(
                         text = stringResource(R.string.about_version, appVersion),
                         style = MaterialTheme.typography.bodyLarge,
                     )
+                    Button(onClick = onOpenDebug) {
+                        Text(stringResource(R.string.debug_info_button))
+                    }
                     Button(onClick = onOpenOssLicenses) {
                         Text(stringResource(R.string.oss_licenses_button))
                     }

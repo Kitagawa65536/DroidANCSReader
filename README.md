@@ -44,7 +44,7 @@ ANCSReader/
 - `viewmodel/AncsViewModel`
   権限状態と Repository の状態を結合して immutable UI state を生成します。
 - `ui/`
-  Compose 画面。接続、通知一覧、デバッグの 3 タブ構成です。
+  Compose 画面。`Connect`、`Notifications`、`More` の 3 タブ構成です。デバッグ情報は `More` から開ける補助画面として提供します。
 - `service/ConnectionForegroundService`
   保存済みの iPhone へ再接続し、ANCS をバックグラウンドで維持しながら Android 通知へミラーします。
 
@@ -90,7 +90,7 @@ ANCSReader/
 3. `Start scan` を押し、候補デバイスから iPhone を選んで `Pair and connect` を押します。
 4. 一度接続すると、その iPhone は背景サービス用の再接続先として保存されます。
 5. `Background Service` セクションから常駐サービスを起動すると、アプリを閉じても通知受信を継続できます。
-6. 接続が進むと `Debug` タブに GATT Service / Characteristic ログが出ます。
+6. 接続が進むと `More` から開ける `Debug information` 画面に GATT Service / Characteristic ログが出ます。
 7. `Ready` になった後、iPhone に新しい通知を発生させると Android 通知として表示され、`Notifications` タブにも保存されます。
 8. `Notifications` タブでは保存済みログの個別削除と全削除ができます。
 9. 対応通知では Positive / Negative Action ボタンを押せます。

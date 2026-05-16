@@ -30,6 +30,6 @@ data class AncsUiState(
 enum class MainTab(val title: String) {
     Connection("Connect"),
     Notifications("Notifications"),
+    More("More"),
     Debug("Debug"),
-    About("About"),
 }

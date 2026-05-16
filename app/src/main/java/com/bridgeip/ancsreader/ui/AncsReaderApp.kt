@@ -42,6 +42,7 @@ fun AncsReaderApp(
     onClearRemovedOnSourceNotifications: () -> Unit,
     onOpenOssLicenses: () -> Unit,
 ) {
+    val visibleTabs = listOf(MainTab.Connection, MainTab.Notifications, MainTab.More)
     val pagerState = rememberPagerState(pageCount = { MainTab.entries.size })
     val coroutineScope = rememberCoroutineScope()
 
@@ -59,13 +60,18 @@ fun AncsReaderApp(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            TabRow(selectedTabIndex = pagerState.currentPage) {
-                MainTab.entries.forEachIndexed { index, tab ->
+            val currentTab = MainTab.entries[pagerState.currentPage]
+            val selectedVisibleTabIndex = visibleTabs.indexOf(currentTab)
+                .takeIf { it >= 0 }
+                ?: visibleTabs.indexOf(MainTab.More)
+
+            TabRow(selectedTabIndex = selectedVisibleTabIndex) {
+                visibleTabs.forEachIndexed { index, tab ->
                     Tab(
-                        selected = pagerState.currentPage == index,
+                        selected = selectedVisibleTabIndex == index,
                         onClick = {
                             coroutineScope.launch {
-                                pagerState.animateScrollToPage(index)
+                                pagerState.animateScrollToPage(MainTab.entries.indexOf(tab))
                             }
                         },
                         text = { Text(tab.title) },
@@ -110,12 +116,22 @@ fun AncsReaderApp(
                         connectionStatus = uiState.connectionStatus,
                         gattServices = uiState.gattServices,
                         debugLogs = uiState.debugLogs,
+                        onNavigateBack = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(MainTab.entries.indexOf(MainTab.More))
+                            }
+                        },
                         modifier = contentModifier,
                     )
 
-                    MainTab.About -> AboutScreen(
+                    MainTab.More -> AboutScreen(
                         appVersion = appVersion,
                         onOpenOssLicenses = onOpenOssLicenses,
+                        onOpenDebug = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(MainTab.entries.indexOf(MainTab.Debug))
+                            }
+                        },
                         modifier = contentModifier,
                     )
                 }
