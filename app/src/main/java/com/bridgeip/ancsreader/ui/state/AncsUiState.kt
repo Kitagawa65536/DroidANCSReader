@@ -27,9 +27,8 @@ data class AncsUiState(
     val canStartScan: Boolean = bluetoothEnabled && missingPermissions.isEmpty()
 }
 
-enum class MainTab(val title: String) {
-    Connection("Connect"),
-    Notifications("Notifications"),
-    More("More"),
-    Debug("Debug"),
+enum class MainTab(val title: String, val route: String) {
+    Connection("Connect", "connection"),
+    Notifications("Notifications", "notifications"),
+    More("More", "more"),
 }

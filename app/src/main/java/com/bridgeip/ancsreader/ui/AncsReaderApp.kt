@@ -3,8 +3,7 @@ package com.bridgeip.ancsreader.ui
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
@@ -13,16 +12,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.bridgeip.ancsreader.ui.screens.AboutScreen
 import com.bridgeip.ancsreader.ui.screens.ConnectionScreen
 import com.bridgeip.ancsreader.ui.screens.DebugScreen
 import com.bridgeip.ancsreader.ui.screens.NotificationsScreen
 import com.bridgeip.ancsreader.ui.state.AncsUiState
 import com.bridgeip.ancsreader.ui.state.MainTab
-import kotlinx.coroutines.launch
+
+private const val DebugRoute = "debug"
+private const val SwipeThresholdPx = 96f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,8 +49,17 @@ fun AncsReaderApp(
     onOpenOssLicenses: () -> Unit,
 ) {
     val visibleTabs = listOf(MainTab.Connection, MainTab.Notifications, MainTab.More)
-    val pagerState = rememberPagerState(pageCount = { MainTab.entries.size })
-    val coroutineScope = rememberCoroutineScope()
+    val navController = rememberNavController()
+
+    fun navigateToTab(tab: MainTab) {
+        navController.navigate(tab.route) {
+            popUpTo(navController.graph.startDestinationId) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -60,18 +75,19 @@ fun AncsReaderApp(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            val currentTab = MainTab.entries[pagerState.currentPage]
-            val selectedVisibleTabIndex = visibleTabs.indexOf(currentTab)
-                .takeIf { it >= 0 }
-                ?: visibleTabs.indexOf(MainTab.More)
+            val currentDestination = navController.currentBackStackEntryAsState().value?.destination
+            val currentRoute = currentDestination?.route
+            val selectedVisibleTabIndex = visibleTabs.indexOfFirst { tab ->
+                currentDestination?.hierarchy?.any { it.route == tab.route } == true
+            }.takeIf { it >= 0 } ?: visibleTabs.indexOf(MainTab.More)
 
             TabRow(selectedTabIndex = selectedVisibleTabIndex) {
                 visibleTabs.forEachIndexed { index, tab ->
                     Tab(
                         selected = selectedVisibleTabIndex == index,
                         onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(MainTab.entries.indexOf(tab))
+                            if (currentRoute != tab.route) {
+                                navigateToTab(tab)
                             }
                         },
                         text = { Text(tab.title) },
@@ -83,14 +99,42 @@ fun AncsReaderApp(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp, vertical = 16.dp)
 
-            HorizontalPager(
-                state = pagerState,
+            NavHost(
+                navController = navController,
+                startDestination = MainTab.Connection.route,
                 modifier = Modifier
                     .fillMaxSize()
-                    .weight(1f),
-            ) { page ->
-                when (MainTab.entries[page]) {
-                    MainTab.Connection -> ConnectionScreen(
+                    .weight(1f)
+                    .pointerInput(selectedVisibleTabIndex) {
+                        var dragAmount = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = {
+                                dragAmount = 0f
+                            },
+                            onHorizontalDrag = { _, dragDelta ->
+                                dragAmount += dragDelta
+                            },
+                            onDragEnd = {
+                                when {
+                                    dragAmount <= -SwipeThresholdPx -> {
+                                        visibleTabs.getOrNull(selectedVisibleTabIndex + 1)
+                                            ?.let(::navigateToTab)
+                                    }
+
+                                    dragAmount >= SwipeThresholdPx -> {
+                                        visibleTabs.getOrNull(selectedVisibleTabIndex - 1)
+                                            ?.let(::navigateToTab)
+                                    }
+                                }
+                            },
+                            onDragCancel = {
+                                dragAmount = 0f
+                            },
+                        )
+                    },
+            ) {
+                composable(MainTab.Connection.route) {
+                    ConnectionScreen(
                         uiState = uiState,
                         onRequestPermissions = onRequestPermissions,
                         onRequestOptionalPermissions = onRequestOptionalPermissions,
@@ -102,8 +146,10 @@ fun AncsReaderApp(
                         onSetForegroundServiceEnabled = onSetForegroundServiceEnabled,
                         modifier = contentModifier,
                     )
+                }
 
-                    MainTab.Notifications -> NotificationsScreen(
+                composable(MainTab.Notifications.route) {
+                    NotificationsScreen(
                         notifications = uiState.notifications,
                         onDeleteNotification = onDeleteNotification,
                         onClearNotifications = onClearNotifications,
@@ -111,26 +157,26 @@ fun AncsReaderApp(
                         hasRemovedOnSourceNotifications = uiState.notifications.any { it.removedOnSource },
                         modifier = contentModifier,
                     )
+                }
 
-                    MainTab.Debug -> DebugScreen(
+                composable(MainTab.More.route) {
+                    AboutScreen(
+                        appVersion = appVersion,
+                        onOpenOssLicenses = onOpenOssLicenses,
+                        onOpenDebug = {
+                            navController.navigate(DebugRoute)
+                        },
+                        modifier = contentModifier,
+                    )
+                }
+
+                composable(DebugRoute) {
+                    DebugScreen(
                         connectionStatus = uiState.connectionStatus,
                         gattServices = uiState.gattServices,
                         debugLogs = uiState.debugLogs,
                         onNavigateBack = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(MainTab.entries.indexOf(MainTab.More))
-                            }
-                        },
-                        modifier = contentModifier,
-                    )
-
-                    MainTab.More -> AboutScreen(
-                        appVersion = appVersion,
-                        onOpenOssLicenses = onOpenOssLicenses,
-                        onOpenDebug = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(MainTab.entries.indexOf(MainTab.Debug))
-                            }
+                            navController.popBackStack()
                         },
                         modifier = contentModifier,
                     )
