@@ -137,6 +137,10 @@ class AncsViewModel(
         repository.clearRemovedOnSourceNotifications()
     }
 
+    fun requestMissingNotificationDetails() {
+        repository.requestMissingNotificationDetails()
+    }
+
     fun setForegroundServiceEnabled(enabled: Boolean) {
         repository.setForegroundServiceEnabled(enabled)
     }

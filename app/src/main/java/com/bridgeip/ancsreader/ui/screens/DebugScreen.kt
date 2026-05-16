@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.bridgeip.ancsreader.R
+import com.bridgeip.ancsreader.data.model.ConnectionStage
 import com.bridgeip.ancsreader.data.model.ConnectionStatus
 import com.bridgeip.ancsreader.data.model.DebugLogEntry
 import com.bridgeip.ancsreader.data.model.GattServiceSummary
@@ -38,21 +39,21 @@ fun DebugScreen(
 
         item {
             SectionCard(
-                title = "GATT state",
-                subtitle = connectionStatus.message,
+                title = stringResource(R.string.gatt_state_title),
+                subtitle = localizedConnectionMessage(connectionStatus),
             ) {
-                Text("Stage: ${connectionStatus.stage}")
-                connectionStatus.deviceAddress?.let { Text("Device: $it") }
+                Text(stringResource(R.string.debug_stage, stringResource(connectionStatus.stage.labelResId)))
+                connectionStatus.deviceAddress?.let { Text(stringResource(R.string.debug_device, it)) }
             }
         }
 
         item {
             SectionCard(
-                title = "Services",
-                subtitle = "Discovered services and characteristics from the current GATT session.",
+                title = stringResource(R.string.services_title),
+                subtitle = stringResource(R.string.services_description),
             ) {
                 if (gattServices.isEmpty()) {
-                    Text("No services discovered yet.")
+                    Text(stringResource(R.string.no_services_discovered))
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         gattServices.forEach { service ->
@@ -71,7 +72,7 @@ fun DebugScreen(
 
         item {
             Text(
-                text = "Logs",
+                text = stringResource(R.string.logs_title),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
@@ -80,7 +81,7 @@ fun DebugScreen(
         if (debugLogs.isEmpty()) {
             item {
                 Text(
-                    text = "No logs yet.",
+                    text = stringResource(R.string.no_logs),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
@@ -93,5 +94,34 @@ fun DebugScreen(
                 subtitle = log.message,
             ) {}
         }
+    }
+}
+
+private val ConnectionStage.labelResId: Int
+    get() = when (this) {
+        ConnectionStage.Idle -> R.string.connection_stage_idle
+        ConnectionStage.Scanning -> R.string.connection_stage_scanning
+        ConnectionStage.Bonding -> R.string.connection_stage_bonding
+        ConnectionStage.Connecting -> R.string.connection_stage_connecting
+        ConnectionStage.DiscoveringServices -> R.string.connection_stage_discovering_services
+        ConnectionStage.Subscribing -> R.string.connection_stage_subscribing
+        ConnectionStage.Ready -> R.string.connection_stage_ready
+        ConnectionStage.Disconnected -> R.string.connection_stage_disconnected
+        ConnectionStage.Error -> R.string.connection_stage_error
+    }
+
+@Composable
+private fun localizedConnectionMessage(status: ConnectionStatus): String {
+    val device = status.deviceAddress ?: "iPhone"
+    return when (status.stage) {
+        ConnectionStage.Idle -> stringResource(R.string.connection_message_idle)
+        ConnectionStage.Scanning -> stringResource(R.string.connection_message_scanning)
+        ConnectionStage.Bonding -> stringResource(R.string.connection_message_bonding)
+        ConnectionStage.Connecting -> stringResource(R.string.connection_message_connecting, device)
+        ConnectionStage.DiscoveringServices -> stringResource(R.string.connection_message_discovering_services)
+        ConnectionStage.Subscribing -> stringResource(R.string.connection_message_subscribing)
+        ConnectionStage.Ready -> stringResource(R.string.connection_message_ready)
+        ConnectionStage.Disconnected -> stringResource(R.string.connection_message_disconnected)
+        ConnectionStage.Error -> stringResource(R.string.connection_message_error)
     }
 }

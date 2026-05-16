@@ -33,5 +33,6 @@ interface AncsRepository {
     fun deleteNotification(notificationUid: Long)
     fun clearNotificationHistory()
     fun clearRemovedOnSourceNotifications()
+    fun requestMissingNotificationDetails()
     fun setForegroundServiceEnabled(enabled: Boolean)
 }

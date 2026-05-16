@@ -16,7 +16,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.bridgeip.ancsreader.R
+import com.bridgeip.ancsreader.data.model.ConnectionStage
+import com.bridgeip.ancsreader.data.model.ConnectionStatus
 import com.bridgeip.ancsreader.data.model.DiscoveredDevice
 import com.bridgeip.ancsreader.ui.components.SectionCard
 import com.bridgeip.ancsreader.ui.state.AncsUiState
@@ -41,8 +45,8 @@ fun ConnectionScreen(
     ) {
         item {
             SectionCard(
-                title = "Permissions",
-                subtitle = "Android 12+ needs BLUETOOTH_SCAN and BLUETOOTH_CONNECT. Pre-Android 12 falls back to legacy Bluetooth and location permissions.",
+                title = stringResource(R.string.permissions_title),
+                subtitle = stringResource(R.string.permissions_description),
             ) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -52,18 +56,25 @@ fun ConnectionScreen(
                         val granted = permission in uiState.grantedPermissions
                         AssistChip(
                             onClick = {},
-                            label = { Text(if (granted) "$permission granted" else "$permission missing") },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        if (granted) R.string.permission_granted else R.string.permission_missing,
+                                        permission,
+                                    ),
+                                )
+                            },
                         )
                     }
                 }
                 if (uiState.missingPermissions.isNotEmpty()) {
                     Button(onClick = onRequestPermissions) {
-                        Text("Request Bluetooth permissions")
+                        Text(stringResource(R.string.request_bluetooth_permissions))
                     }
                 }
                 if (uiState.optionalPermissions.isNotEmpty() && uiState.missingOptionalPermissions.isNotEmpty()) {
                     OutlinedButton(onClick = onRequestOptionalPermissions) {
-                        Text("Allow Android notifications")
+                        Text(stringResource(R.string.allow_android_notifications))
                     }
                 }
             }
@@ -71,16 +82,18 @@ fun ConnectionScreen(
 
         item {
             SectionCard(
-                title = "Bluetooth",
-                subtitle = "Turn Bluetooth on before scanning for an iPhone.",
+                title = stringResource(R.string.bluetooth_title),
+                subtitle = stringResource(R.string.bluetooth_description),
             ) {
                 Text(
-                    text = if (uiState.bluetoothEnabled) "Bluetooth is enabled." else "Bluetooth is disabled.",
+                    text = stringResource(
+                        if (uiState.bluetoothEnabled) R.string.bluetooth_enabled else R.string.bluetooth_disabled,
+                    ),
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 if (!uiState.bluetoothEnabled) {
                     Button(onClick = onEnableBluetooth) {
-                        Text("Enable Bluetooth")
+                        Text(stringResource(R.string.enable_bluetooth))
                     }
                 }
             }
@@ -88,28 +101,31 @@ fun ConnectionScreen(
 
         item {
             SectionCard(
-                title = "Connection",
-                subtitle = uiState.connectionStatus.message,
+                title = stringResource(R.string.connection_title),
+                subtitle = localizedConnectionMessage(uiState.connectionStatus),
             ) {
                 Text(
-                    text = "Status: ${uiState.connectionStatus.stage}",
+                    text = stringResource(
+                        R.string.connection_status,
+                        stringResource(uiState.connectionStatus.stage.labelResId),
+                    ),
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (uiState.isScanning) {
                         Button(onClick = onStopScan) {
-                            Text("Stop scan")
+                            Text(stringResource(R.string.stop_scan))
                         }
                     } else {
                         Button(
                             onClick = onStartScan,
                             enabled = uiState.canStartScan,
                         ) {
-                            Text("Start scan")
+                            Text(stringResource(R.string.start_scan))
                         }
                     }
                     OutlinedButton(onClick = onDisconnect) {
-                        Text("Disconnect")
+                        Text(stringResource(R.string.disconnect))
                     }
                 }
             }
@@ -117,20 +133,22 @@ fun ConnectionScreen(
 
         item {
             SectionCard(
-                title = "Background Service",
-                subtitle = "Keep ANCS connected in the foreground service and mirror paired iPhone notifications into Android notifications.",
+                title = stringResource(R.string.background_service_title),
+                subtitle = stringResource(R.string.background_service_description),
             ) {
                 Text(
-                    text = if (uiState.appSettings.foregroundServiceEnabled) {
-                        "Foreground service is enabled."
-                    } else {
-                        "Foreground service is disabled."
-                    },
+                    text = stringResource(
+                        if (uiState.appSettings.foregroundServiceEnabled) {
+                            R.string.foreground_service_enabled
+                        } else {
+                            R.string.foreground_service_disabled
+                        },
+                    ),
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 uiState.appSettings.lastConnectedDeviceLabel?.let { deviceLabel ->
                     Text(
-                        text = "Paired target: $deviceLabel",
+                        text = stringResource(R.string.paired_target, deviceLabel),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -139,18 +157,18 @@ fun ConnectionScreen(
                         onClick = { onSetForegroundServiceEnabled(true) },
                         enabled = uiState.appSettings.lastConnectedDeviceAddress != null && !uiState.appSettings.foregroundServiceEnabled,
                     ) {
-                        Text("Start service")
+                        Text(stringResource(R.string.start_service))
                     }
                     OutlinedButton(
                         onClick = { onSetForegroundServiceEnabled(false) },
                         enabled = uiState.appSettings.foregroundServiceEnabled,
                     ) {
-                        Text("Stop service")
+                        Text(stringResource(R.string.stop_service))
                     }
                 }
                 if (uiState.appSettings.lastConnectedDeviceAddress == null) {
                     Text(
-                        text = "Connect to an iPhone once to save it as the background reconnect target.",
+                        text = stringResource(R.string.background_target_hint),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -159,7 +177,7 @@ fun ConnectionScreen(
 
         item {
             Text(
-                text = "Detected devices",
+                text = stringResource(R.string.detected_devices_title),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
@@ -168,7 +186,7 @@ fun ConnectionScreen(
         if (uiState.scanResults.isEmpty()) {
             item {
                 Text(
-                    text = "No BLE devices yet. Start a scan and unlock the iPhone so it can accept pairing.",
+                    text = stringResource(R.string.no_ble_devices),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
@@ -187,16 +205,50 @@ private fun DeviceCard(
     onConnect: (String) -> Unit,
 ) {
     SectionCard(
-        title = device.name ?: "Unnamed BLE device",
+        title = device.name ?: stringResource(R.string.unnamed_ble_device),
         subtitle = device.address,
     ) {
-        Text("RSSI: ${device.rssi} dBm")
-        Text("Connectable: ${if (device.isConnectable) "Yes" else "Unknown"}")
+        Text(stringResource(R.string.rssi_value, device.rssi))
+        Text(
+            stringResource(
+                R.string.connectable_value,
+                stringResource(if (device.isConnectable) R.string.yes else R.string.unknown),
+            ),
+        )
         Button(
             onClick = { onConnect(device.address) },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Pair and connect")
+            Text(stringResource(R.string.pair_and_connect))
         }
+    }
+}
+
+private val ConnectionStage.labelResId: Int
+    get() = when (this) {
+        ConnectionStage.Idle -> R.string.connection_stage_idle
+        ConnectionStage.Scanning -> R.string.connection_stage_scanning
+        ConnectionStage.Bonding -> R.string.connection_stage_bonding
+        ConnectionStage.Connecting -> R.string.connection_stage_connecting
+        ConnectionStage.DiscoveringServices -> R.string.connection_stage_discovering_services
+        ConnectionStage.Subscribing -> R.string.connection_stage_subscribing
+        ConnectionStage.Ready -> R.string.connection_stage_ready
+        ConnectionStage.Disconnected -> R.string.connection_stage_disconnected
+        ConnectionStage.Error -> R.string.connection_stage_error
+    }
+
+@Composable
+private fun localizedConnectionMessage(status: ConnectionStatus): String {
+    val device = status.deviceAddress ?: "iPhone"
+    return when (status.stage) {
+        ConnectionStage.Idle -> stringResource(R.string.connection_message_idle)
+        ConnectionStage.Scanning -> stringResource(R.string.connection_message_scanning)
+        ConnectionStage.Bonding -> stringResource(R.string.connection_message_bonding)
+        ConnectionStage.Connecting -> stringResource(R.string.connection_message_connecting, device)
+        ConnectionStage.DiscoveringServices -> stringResource(R.string.connection_message_discovering_services)
+        ConnectionStage.Subscribing -> stringResource(R.string.connection_message_subscribing)
+        ConnectionStage.Ready -> stringResource(R.string.connection_message_ready)
+        ConnectionStage.Disconnected -> stringResource(R.string.connection_message_disconnected)
+        ConnectionStage.Error -> stringResource(R.string.connection_message_error)
     }
 }

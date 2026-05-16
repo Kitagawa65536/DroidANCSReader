@@ -120,6 +120,7 @@ class MainActivity : ComponentActivity() {
                     onDeleteNotification = viewModel::deleteNotification,
                     onClearNotifications = viewModel::clearNotificationHistory,
                     onClearRemovedOnSourceNotifications = viewModel::clearRemovedOnSourceNotifications,
+                    onRequestMissingNotificationDetails = viewModel::requestMissingNotificationDetails,
                     onOpenOssLicenses = {
                         OssLicensesMenuActivity.setActivityTitle(getString(R.string.oss_licenses_title))
                         startActivity(Intent(this@MainActivity, OssLicensesMenuActivity::class.java))

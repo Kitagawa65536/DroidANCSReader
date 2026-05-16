@@ -1,6 +1,7 @@
 package com.bridgeip.ancsreader.ui.state
 
 import com.bridgeip.ancsreader.bluetooth.BluetoothPermissionResolver
+import com.bridgeip.ancsreader.R
 import com.bridgeip.ancsreader.data.model.AncsNotification
 import com.bridgeip.ancsreader.data.model.AppSettings
 import com.bridgeip.ancsreader.data.model.ConnectionStatus
@@ -27,8 +28,8 @@ data class AncsUiState(
     val canStartScan: Boolean = bluetoothEnabled && missingPermissions.isEmpty()
 }
 
-enum class MainTab(val title: String, val route: String) {
-    Connection("Connect", "connection"),
-    Notifications("Notifications", "notifications"),
-    More("More", "more"),
+enum class MainTab(val titleResId: Int, val route: String) {
+    Connection(R.string.tab_connection, "connection"),
+    Notifications(R.string.tab_notifications, "notifications"),
+    More(R.string.tab_more, "more"),
 }

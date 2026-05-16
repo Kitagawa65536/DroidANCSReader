@@ -144,6 +144,7 @@ data class AncsNotification(
 ) {
     val supportsPositiveAction: Boolean = flags.positiveAction
     val supportsNegativeAction: Boolean = flags.negativeAction
+    val isMissingDetails: Boolean = subtitle.isBlank() && message.isBlank()
     val displayTitle: String = title.ifBlank { appIdentifier.ifBlank { "Notification $notificationUid" } }
     val displayMessage: String = buildString {
         if (subtitle.isNotBlank()) {

@@ -29,6 +29,68 @@ import org.junit.Test
 
 class DefaultAncsRepositoryTest {
     @Test
+    fun requestMissingNotificationDetails_requestsOnlyActiveNotificationsWithoutDetails() {
+        val scanner = FakeBleScanner()
+        val bluetoothStateMonitor = FakeBluetoothStateMonitor()
+        val missingDetailsNotification = testNotification(
+            notificationUid = 1L,
+            removedOnSource = false,
+        )
+        val fetchedDetailsNotification = testNotification(
+            notificationUid = 2L,
+            removedOnSource = false,
+            message = "Already fetched",
+        )
+        val removedMissingDetailsNotification = testNotification(
+            notificationUid = 3L,
+            removedOnSource = true,
+        )
+        val notificationsFlow = MutableStateFlow(
+            listOf(
+                missingDetailsNotification,
+                fetchedDetailsNotification,
+                removedMissingDetailsNotification,
+            ),
+        )
+        val ancsManager = FakeAncsEventController()
+        val connectionManager = FakeBleConnectionController()
+        val appPreferencesStore = FakeAppPreferencesDataSource()
+        val notificationHistoryStore = FakeNotificationHistoryDataSource(notificationsFlow)
+        val logStore = FakeDebugLogSource()
+
+        val repository = DefaultAncsRepository(
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
+            scanner = scanner,
+            connectionManager = connectionManager,
+            bluetoothStateMonitor = bluetoothStateMonitor,
+            ancsManager = ancsManager,
+            logStore = logStore,
+            appPreferencesStore = appPreferencesStore,
+            notificationHistoryStore = notificationHistoryStore,
+        )
+
+        repository.requestMissingNotificationDetails()
+
+        assertEquals(
+            listOf(
+                RequestedNotificationDetails(
+                    notificationUid = 1L,
+                    attributes = listOf(
+                        NotificationAttributeId.AppIdentifier,
+                        NotificationAttributeId.Title,
+                        NotificationAttributeId.Subtitle,
+                        NotificationAttributeId.Message,
+                        NotificationAttributeId.Date,
+                        NotificationAttributeId.PositiveActionLabel,
+                        NotificationAttributeId.NegativeActionLabel,
+                    ),
+                ),
+            ),
+            ancsManager.requestedNotificationDetails,
+        )
+    }
+
+    @Test
     fun clearRemovedOnSourceNotifications_deletesOnlyRemovedFromHistoryList() {
         val scanner = FakeBleScanner()
         val bluetoothStateMonitor = FakeBluetoothStateMonitor()
@@ -71,6 +133,7 @@ class DefaultAncsRepositoryTest {
     private fun testNotification(
         notificationUid: Long,
         removedOnSource: Boolean,
+        message: String = "",
     ): AncsNotification = AncsNotification(
         notificationUid = notificationUid,
         category = NotificationCategory.Other,
@@ -86,6 +149,7 @@ class DefaultAncsRepositoryTest {
         lastUpdatedMillis = 2_000L + notificationUid,
         removedOnSource = removedOnSource,
         title = "Title $notificationUid",
+        message = message,
     )
 
     private class FakeBleScanner : BleScanner {
@@ -117,12 +181,23 @@ class DefaultAncsRepositoryTest {
     private class FakeAncsEventController : AncsEventController {
         private val _events = MutableSharedFlow<AncsEvent>()
         override val events: SharedFlow<AncsEvent> = _events
+        val requestedNotificationDetails = mutableListOf<RequestedNotificationDetails>()
 
         override fun requestNotificationDetails(
             notificationUid: Long,
             attributes: List<NotificationAttributeId>,
-        ) = Unit
+        ) {
+            requestedNotificationDetails += RequestedNotificationDetails(
+                notificationUid = notificationUid,
+                attributes = attributes,
+            )
+        }
     }
+
+    private data class RequestedNotificationDetails(
+        val notificationUid: Long,
+        val attributes: List<NotificationAttributeId>,
+    )
 
     private class FakeAppPreferencesDataSource : AppPreferencesDataSource {
         override val settings = MutableStateFlow(AppSettings())

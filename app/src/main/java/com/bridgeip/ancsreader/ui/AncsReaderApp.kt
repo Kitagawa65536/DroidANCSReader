@@ -14,12 +14,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.bridgeip.ancsreader.R
 import com.bridgeip.ancsreader.ui.screens.AboutScreen
 import com.bridgeip.ancsreader.ui.screens.ConnectionScreen
 import com.bridgeip.ancsreader.ui.screens.DebugScreen
@@ -46,6 +48,7 @@ fun AncsReaderApp(
     onDeleteNotification: (Long) -> Unit,
     onClearNotifications: () -> Unit,
     onClearRemovedOnSourceNotifications: () -> Unit,
+    onRequestMissingNotificationDetails: () -> Unit,
     onOpenOssLicenses: () -> Unit,
 ) {
     val visibleTabs = listOf(MainTab.Connection, MainTab.Notifications, MainTab.More)
@@ -65,7 +68,7 @@ fun AncsReaderApp(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("DroidANCSReader") },
+                title = { Text(stringResource(R.string.app_name)) },
                 colors = TopAppBarDefaults.topAppBarColors(),
             )
         },
@@ -90,7 +93,7 @@ fun AncsReaderApp(
                                 navigateToTab(tab)
                             }
                         },
-                        text = { Text(tab.title) },
+                        text = { Text(stringResource(tab.titleResId)) },
                     )
                 }
             }
@@ -154,6 +157,7 @@ fun AncsReaderApp(
                         onDeleteNotification = onDeleteNotification,
                         onClearNotifications = onClearNotifications,
                         onClearRemovedOnSourceNotifications = onClearRemovedOnSourceNotifications,
+                        onRequestMissingNotificationDetails = onRequestMissingNotificationDetails,
                         hasRemovedOnSourceNotifications = uiState.notifications.any { it.removedOnSource },
                         modifier = contentModifier,
                     )

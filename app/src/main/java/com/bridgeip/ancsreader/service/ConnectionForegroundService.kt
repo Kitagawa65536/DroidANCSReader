@@ -17,6 +17,7 @@ import com.bridgeip.ancsreader.R
 import com.bridgeip.ancsreader.data.model.AncsNotification
 import com.bridgeip.ancsreader.data.model.ConnectionStage
 import com.bridgeip.ancsreader.data.model.ConnectionStatus
+import com.bridgeip.ancsreader.data.model.NotificationCategory
 import com.bridgeip.ancsreader.data.model.NotificationPresentationCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -230,10 +231,10 @@ class ConnectionForegroundService : Service() {
         )
         val mirrored = NotificationCompat.Builder(this, MIRRORED_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_status)
-            .setContentTitle(notification.displayTitle)
-            .setContentText(notification.displayMessage.replace('\n', ' '))
-            .setStyle(BigTextStyle().bigText(notification.displayMessage))
-            .setSubText(notification.category.label)
+            .setContentTitle(notification.displayTitleLocalized())
+            .setContentText(notification.displayMessageLocalized().replace('\n', ' '))
+            .setStyle(BigTextStyle().bigText(notification.displayMessageLocalized()))
+            .setSubText(getString(notification.category.labelResId))
             .setContentIntent(launchIntent)
             .setAutoCancel(true)
             .build()
@@ -248,6 +249,41 @@ class ConnectionForegroundService : Service() {
     private fun cancelAllMirroredNotifications() {
         mirroredNotificationIds.toList().forEach(::cancelMirroredNotification)
     }
+
+    private fun AncsNotification.displayTitleLocalized(): String =
+        title.ifBlank {
+            appIdentifier.ifBlank {
+                getString(R.string.notification_fallback_title, notificationUid)
+            }
+        }
+
+    private fun AncsNotification.displayMessageLocalized(): String = buildString {
+        if (subtitle.isNotBlank()) {
+            append(subtitle)
+        }
+        if (message.isNotBlank()) {
+            if (isNotBlank()) {
+                append("\n")
+            }
+            append(message)
+        }
+    }.ifBlank { getString(R.string.notification_waiting_for_details) }
+
+    private val NotificationCategory.labelResId: Int
+        get() = when (this) {
+            NotificationCategory.Other -> R.string.category_other
+            NotificationCategory.IncomingCall -> R.string.category_incoming_call
+            NotificationCategory.MissedCall -> R.string.category_missed_call
+            NotificationCategory.Voicemail -> R.string.category_voicemail
+            NotificationCategory.Social -> R.string.category_social
+            NotificationCategory.Schedule -> R.string.category_schedule
+            NotificationCategory.Email -> R.string.category_email
+            NotificationCategory.News -> R.string.category_news
+            NotificationCategory.HealthAndFitness -> R.string.category_health
+            NotificationCategory.BusinessAndFinance -> R.string.category_business
+            NotificationCategory.Location -> R.string.category_location
+            NotificationCategory.Entertainment -> R.string.category_entertainment
+        }
 
     companion object {
         const val ACTION_STOP = "com.bridgeip.ancsreader.action.STOP_FOREGROUND"

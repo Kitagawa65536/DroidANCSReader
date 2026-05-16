@@ -35,7 +35,7 @@ class DefaultAncsRepository(
     private val scanner: BleScanner,
     private val connectionManager: BleConnectionController,
     private val bluetoothStateMonitor: BluetoothStateMonitor,
-    ancsManager: AncsEventController,
+    private val ancsManager: AncsEventController,
     logStore: DebugLogSource,
     private val appPreferencesStore: AppPreferencesDataSource,
     private val notificationHistoryStore: NotificationHistoryDataSource,
@@ -131,6 +131,14 @@ class DefaultAncsRepository(
         notificationHistoryStore.clearRemovedOnSourceNotifications()
     }
 
+    override fun requestMissingNotificationDetails() {
+        notificationHistoryStore.notifications.value
+            .filter { notification -> notification.isMissingDetails && !notification.removedOnSource }
+            .forEach { notification ->
+                requestNotificationDetails(notification.notificationUid)
+            }
+    }
+
     override fun setForegroundServiceEnabled(enabled: Boolean) {
         appPreferencesStore.setForegroundServiceEnabled(enabled)
     }
@@ -172,18 +180,7 @@ class DefaultAncsRepository(
         )
         activeNotificationsByUid[source.notificationUid] = notification
         notificationHistoryStore.upsert(notification)
-        ancsManager.requestNotificationDetails(
-            notificationUid = source.notificationUid,
-            attributes = listOf(
-                NotificationAttributeId.AppIdentifier,
-                NotificationAttributeId.Title,
-                NotificationAttributeId.Subtitle,
-                NotificationAttributeId.Message,
-                NotificationAttributeId.Date,
-                NotificationAttributeId.PositiveActionLabel,
-                NotificationAttributeId.NegativeActionLabel,
-            ),
-        )
+        requestNotificationDetails(source.notificationUid)
     }
 
     private fun handleAttributes(event: AncsEvent.NotificationAttributesReceived) {
@@ -205,5 +202,24 @@ class DefaultAncsRepository(
         activeNotificationsByUid[event.response.notificationUid] = updated
         notificationHistoryStore.upsert(updated)
         _notificationPresentationCommands.tryEmit(NotificationPresentationCommand.Show(updated))
+    }
+
+    private fun requestNotificationDetails(notificationUid: Long) {
+        ancsManager.requestNotificationDetails(
+            notificationUid = notificationUid,
+            attributes = notificationDetailAttributes,
+        )
+    }
+
+    private companion object {
+        val notificationDetailAttributes = listOf(
+            NotificationAttributeId.AppIdentifier,
+            NotificationAttributeId.Title,
+            NotificationAttributeId.Subtitle,
+            NotificationAttributeId.Message,
+            NotificationAttributeId.Date,
+            NotificationAttributeId.PositiveActionLabel,
+            NotificationAttributeId.NegativeActionLabel,
+        )
     }
 }
